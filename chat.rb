@@ -1,6 +1,6 @@
 require "rubygems"
 require "yaml"            # ... or where we will store the chat messages ...
-require "ftools"          # ... or we wanna access the filesystem ...
+require "fileutils"          # ... or we wanna access the filesystem ...
 require "sinatra"         # ... or Classy web-development dressed in DSL, http://sinatrarb.com
 
 # Let's configure Sinatra logging in production
@@ -16,21 +16,21 @@ require "sinatra"         # ... or Classy web-development dressed in DSL, http:/
 # 
 class Chat
   
-  @@yaml_file = File.join( File.dirname(__FILE__), 'messages.yml' )
+  @yaml_file = File.join( File.dirname(__FILE__), 'messages.yml' )
     
   # Initializes the chat
   def self.start
     puts "Starting chat server..."
     load_messages
-    raise 'YAML file not writable' unless File.writable? @@yaml_file
+    raise 'YAML file not writable' unless File.writable? @yaml_file
   end
 
   # Load the messages from file and send the new ones in response
   def self.listen(from=0)
-    start unless @@messages
+    start unless @messages
     # puts "* | Load messages from time: #{Time.at(from.to_i)}"
-    # puts "  | #{@@messages.inspect}"
-    @@messages.clone.delete_if { |m| m[:created_at].to_i <= from.to_i if m[:created_at] } # Kick out old messages
+    # puts "  | #{@messages.inspect}"
+    @messages.clone.delete_if { |m| m[:created_at].to_i <= from.to_i if m[:created_at] } # Kick out old messages
   end
 
   # Write the message to file
@@ -38,14 +38,14 @@ class Chat
     # puts ">>> #{author} wants to say #{message}"
     tmpfile = File.join( File.dirname(__FILE__), 'messages.tmp' )
     File.open(tmpfile, 'w') do |f| 
-      f << ( @@messages << { :author => author, :message => message, :created_at => Time.now.to_i } ).to_yaml 
+      f << ( @messages << { :author => author, :message => message, :created_at => Time.now.to_i } ).to_yaml 
     end
-    File.copy(tmpfile, @@yaml_file) # We have to do an 'atomic write' (Google it :)
-    File.delete(tmpfile)
+    FileUtils.copy(tmpfile, @yaml_file) # We have to do an 'atomic write' (Google it :)
+    FileUtils.rm(tmpfile)
   end
   
   def self.messages
-    @@messages
+    @messages
   end
       
   private
@@ -53,7 +53,7 @@ class Chat
   # Load messages from YAML
   def self.load_messages
     # puts "Reading messages from YAML file"
-    @@messages = YAML.load_file( @@yaml_file )
+    @messages = YAML.load_file( @yaml_file )
   end
   
 end#Chat
